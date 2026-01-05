@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { PropertyDetail } from './pages/PropertyDetail';
 import { InventoryForm } from './pages/InventoryForm';
@@ -27,7 +28,7 @@ function App() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [viewState, setViewState] = useState('LIST'); 
-  const [authView, setAuthView] = useState<'LOGIN' | 'REGISTER' | 'FORGOT'>('LOGIN');
+  const [authView, setAuthView] = useState<'LOGIN' | 'REGISTER' | 'FORGOT' | 'RESET'>('LOGIN');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(true);
   
@@ -36,18 +37,37 @@ function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stockData, setStockData] = useState<Record<string, Record<string, number>>>({});
 
-  // 1. Gestione Sessione Supabase
   useEffect(() => {
-    // Controlla sessione esistente
+    // 1. Cattura immediata del tipo di evento dall'URL (reset password)
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('type=recovery')) {
+        setAuthView('RESET');
+      }
+    };
+
+    handleHash();
+
+    // 2. Controllo sessione esistente
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) fetchUserData(session.user.id);
-      else setSessionLoading(false);
+      if (session) {
+        fetchUserData(session.user.id);
+      } else {
+        setSessionLoading(false);
+      }
     });
 
-    // Ascolta cambi di stato (Login/Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) fetchUserData(session.user.id);
-      else {
+    // 3. Ascolta cambi di stato Auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth Event:", event);
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthView('RESET');
+      }
+      
+      if (session) {
+        fetchUserData(session.user.id);
+      } else {
         setUser(null);
         setTenant(null);
         setSessionLoading(false);
@@ -65,26 +85,36 @@ function App() {
         .eq('id', userId)
         .single();
 
-      if (error || !data) throw error;
+      if (error) {
+        // Se l'utente Auth esiste ma non il profilo (delay trigger)
+        if (error.code === 'PGRST116') {
+          console.warn("Profilo in fase di creazione...");
+          return;
+        }
+        throw error;
+      }
 
-      const userData: User = {
-        id: data.id,
-        tenantId: data.tenant_id,
-        email: data.email,
-        name: data.name,
-        role: data.role
-      };
+      if (data) {
+        const userData: User = {
+          id: data.id,
+          tenantId: data.tenant_id,
+          email: data.email,
+          name: data.name,
+          role: data.role
+        };
 
-      const tenantData: Tenant = {
-        id: data.tenants.id,
-        name: data.tenants.name,
-        trialStartDate: data.tenants.trial_start_date,
-        subscriptionStatus: data.tenants.subscription_status
-      };
+        const tenantData: Tenant = {
+          id: data.tenants.id,
+          name: data.tenants.name,
+          trialStartDate: data.tenants.trial_start_date,
+          subscriptionStatus: data.tenants.subscription_status
+        };
 
-      setUser(userData);
-      setTenant(tenantData);
-      checkSubscription(tenantData);
+        setUser(userData);
+        setTenant(tenantData);
+        setAuthView('LOGIN'); 
+        checkSubscription(tenantData);
+      }
     } catch (err) {
       console.error("Errore caricamento dati utente:", err);
     } finally {
@@ -108,6 +138,7 @@ function App() {
     await supabase.auth.signOut();
     setViewState('LIST');
     setSelectedProperty(null);
+    setAuthView('LOGIN');
   };
 
   if (sessionLoading) {
@@ -119,6 +150,7 @@ function App() {
   }
 
   if (!user) {
+    if (authView === 'RESET') return <ResetPassword onComplete={() => setAuthView('LOGIN')} />;
     if (authView === 'REGISTER') return <Register onBackToLogin={() => setAuthView('LOGIN')} />;
     if (authView === 'FORGOT') return <ForgotPassword onBack={() => setAuthView('LOGIN')} />;
     return <Login onGoToRegister={() => setAuthView('REGISTER')} onGoToForgot={() => setAuthView('FORGOT')} />;
@@ -204,16 +236,22 @@ function App() {
 
       case 'profile':
         return (
-          <div className="bg-white p-10 rounded-[2.5rem] shadow-sm text-center space-y-4 border border-slate-100">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-sm text-center space-y-4 border border-slate-100 max-w-lg mx-auto">
              <div className="w-24 h-24 bg-emerald-100 rounded-full mx-auto flex items-center justify-center text-3xl font-bold text-emerald-600">
                {user.name.charAt(0)}
              </div>
-             <h2 className="text-2xl font-black">{user.name}</h2>
+             <h2 className="text-2xl font-black text-slate-800">{user.name}</h2>
              <p className="text-slate-500 font-medium">{user.email}</p>
-             <div className="bg-slate-50 p-6 rounded-3xl inline-block mt-4">
-               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Ruolo Attivo</span>
+             <div className="bg-slate-50 p-6 rounded-3xl inline-block mt-4 w-full">
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Livello Autorizzativo</span>
                <p className="font-bold text-emerald-600">{user.role}</p>
              </div>
+             <button 
+               onClick={handleLogout}
+               className="w-full py-4 mt-6 border-2 border-slate-100 text-slate-400 font-bold rounded-2xl hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-all"
+             >
+               Disconnetti Sessione
+             </button>
           </div>
         );
 

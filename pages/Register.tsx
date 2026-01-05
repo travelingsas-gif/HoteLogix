@@ -23,9 +23,10 @@ export const Register: React.FC<RegisterProps> = ({ onBackToLogin }) => {
     setError('');
 
     try {
-      // Utilizziamo Supabase Auth SignUp
-      // I metadati verranno letti dal trigger SQL per creare Tenant e Profilo
-      const { data, error: authError } = await supabase.auth.signUp({
+      // Determina l'URL di base per il redirect (Vercel o Locale)
+      const redirectUrl = window.location.origin;
+
+      const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -34,8 +35,7 @@ export const Register: React.FC<RegisterProps> = ({ onBackToLogin }) => {
             company_name: companyName,
             role: 'OWNER'
           },
-          // L'URL a cui l'utente viene rimandato dopo aver cliccato l'email
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: redirectUrl
         }
       });
 
