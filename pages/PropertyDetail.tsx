@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ArrowLeft, Box, Shirt, ShoppingCart, AlertTriangle, Edit2, Truck, Tag } from 'lucide-react';
 import { Property, User } from '../types';
@@ -27,7 +28,8 @@ export const PropertyDetail: React.FC<PropertyDetailProps> = ({
   onOpenUnusedLaundry,
   currentUser 
 }) => {
-  const isAdmin = currentUser.role === 'ADMIN';
+  // Fix: changed 'ADMIN' to 'OWNER' | 'SUPER_ADMIN' as 'ADMIN' does not exist in Role type
+  const isAdmin = currentUser.role === 'OWNER' || currentUser.role === 'SUPER_ADMIN';
   const isOperator = currentUser.role === 'OPERATOR';
 
   return (

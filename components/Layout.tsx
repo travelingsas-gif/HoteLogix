@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { LogOut, Home, ShoppingCart, Shirt, User as UserIcon, Package, AlertTriangle, Menu, X } from 'lucide-react';
+import { LogOut, Home, ShoppingCart, Shirt, User as UserIcon, Package, AlertTriangle, Menu, X, BarChart3, Users, Settings, Globe, Shield } from 'lucide-react';
 import { User } from '../types';
 
 interface LayoutProps {
@@ -20,19 +20,20 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isAdmin = currentUser.role === 'OWNER' || currentUser.role === 'SUPER_ADMIN';
+  const isSuperAdmin = currentUser.role === 'SUPER_ADMIN';
+  const isOwner = currentUser.role === 'OWNER';
 
-  const NavItem = ({ id, icon: Icon, label }: any) => (
+  const NavItem = ({ id, icon: Icon, label, color = isSuperAdmin ? "indigo" : "emerald" }: any) => (
     <button
       onClick={() => { onNavigate(id); setIsMobileMenuOpen(false); }}
       className={`flex flex-col md:flex-row items-center justify-center md:justify-start w-full gap-1 md:gap-3 px-3 py-2 md:py-3 rounded-2xl transition-all ${
         currentPage === id 
-          ? 'text-emerald-600 md:bg-emerald-600 md:text-white md:shadow-lg md:shadow-emerald-600/20' 
+          ? `text-${color}-600 md:bg-${color}-600 md:text-white md:shadow-lg md:shadow-${color}-600/20` 
           : 'text-slate-400 md:text-slate-300 md:hover:bg-slate-800'
       }`}
     >
-      <Icon size={22} strokeWidth={currentPage === id ? 2.5 : 2} />
-      <span className="text-[10px] md:text-sm font-bold md:font-semibold uppercase tracking-tight md:tracking-normal">{label}</span>
+      <Icon size={20} strokeWidth={currentPage === id ? 2.5 : 2} />
+      <span className="text-[10px] md:text-xs font-black uppercase tracking-wider">{label}</span>
     </button>
   );
 
@@ -42,78 +43,95 @@ export const Layout: React.FC<LayoutProps> = ({
       <aside className="hidden md:flex w-72 bg-slate-900 text-white flex-col shadow-2xl z-20">
         <div className="p-8 border-b border-slate-800/50">
           <div className="text-2xl font-black tracking-tighter text-white flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-xl"></div>
-            HoteLogix
+            <div className={`w-8 h-8 ${isSuperAdmin ? 'bg-indigo-500' : 'bg-emerald-500'} rounded-xl shadow-lg flex items-center justify-center`}>
+              {isSuperAdmin ? <Globe size={18} /> : <Home size={18} />}
+            </div>
+            HoteLogix {isSuperAdmin && <span className="text-[8px] bg-indigo-500 text-white px-1.5 py-0.5 rounded ml-1 tracking-widest">SYS</span>}
           </div>
-          <div className="mt-4 flex items-center gap-3">
-             <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-emerald-400">
-                {currentUser.name.charAt(0)}
+          <div className="mt-6 flex items-center gap-3 bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50">
+             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ${isSuperAdmin ? 'bg-indigo-500' : 'bg-emerald-500'}`}>
+               {currentUser.name.charAt(0)}
              </div>
-             <div>
-                <p className="text-sm font-bold truncate max-w-[150px]">{currentUser.name}</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{currentUser.role}</p>
+             <div className="min-w-0">
+               <p className="font-bold text-xs truncate">{currentUser.name}</p>
+               <p className="text-[9px] text-slate-500 uppercase tracking-widest font-black">{currentUser.role}</p>
              </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
-          <NavItem id="dashboard" icon={Home} label="Dashboard" />
-          <NavItem id="global_stock" icon={Package} label="Magazzino" />
-          <NavItem id="issues_list" icon={AlertTriangle} label="Guasti" />
-          {isAdmin && (
-            <div className="pt-6 mt-6 border-t border-slate-800/50 space-y-2">
-               <p className="text-[10px] text-slate-500 font-black uppercase px-4 mb-4">Gestione Owner</p>
-               <NavItem id="users" icon={UserIcon} label="Team" />
-            </div>
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+          {isSuperAdmin ? (
+            <>
+              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-4 py-2 mt-4">System Master</p>
+              <NavItem id="super_dashboard" icon={Globe} label="Intelligence" color="indigo" />
+              <NavItem id="global_users" icon={Shield} label="Utenti Globali" color="indigo" />
+              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-4 py-2 mt-4">Visualizzazione Strutture</p>
+              <NavItem id="dashboard" icon={BarChart3} label="Tutti gli Hotel" color="indigo" />
+            </>
+          ) : (
+            <>
+              <NavItem id="dashboard" icon={BarChart3} label="Dashboard" />
+              <NavItem id="inventory" icon={Package} label="Magazzino" />
+              <NavItem id="orders" icon={ShoppingCart} label="Ordini" />
+              <NavItem id="laundry" icon={Shirt} label="Biancheria" />
+              <NavItem id="issues" icon={AlertTriangle} label="Guasti" color="red" />
+              {(isOwner) && (
+                <>
+                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-4 py-2 mt-4">Gestione</p>
+                  <NavItem id="staff" icon={Users} label="Team" />
+                  <NavItem id="products" icon={Settings} label="Catalogo" />
+                </>
+              )}
+            </>
           )}
         </nav>
 
         <div className="p-6 border-t border-slate-800/50">
-          <button onClick={onLogout} className="flex items-center w-full px-4 py-3 text-slate-500 hover:text-white hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all gap-3 font-bold text-sm">
-            <LogOut size={20} />
-            Esci
+          <button 
+            onClick={onLogout}
+            className="flex items-center gap-3 w-full px-4 py-3 text-slate-400 hover:text-white hover:bg-red-500/10 rounded-2xl transition-all group"
+          >
+            <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
+            <span className="text-xs font-black uppercase tracking-wider">Esci Sessione</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Header Mobile Only */}
-        <header className="md:hidden bg-white/80 backdrop-blur-xl border-b border-slate-100 p-4 sticky top-0 z-30 flex justify-between items-center">
-          <div className="text-xl font-black text-slate-900 tracking-tighter">HoteLogix</div>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-slate-100 rounded-xl text-slate-600">
-             {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+      {/* Mobile Nav */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <header className="md:hidden h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 shrink-0">
+          <div className="text-xl font-black tracking-tighter text-slate-900 flex items-center gap-2">
+            <div className={`w-6 h-6 ${isSuperAdmin ? 'bg-indigo-600' : 'bg-emerald-600'} rounded-lg shadow-sm`}></div>
+            HoteLogix
+          </div>
+          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-400">
+            <Menu size={24} />
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-10 safe-bottom">
+        <main className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
           {children}
         </main>
-
-        {/* Mobile Bottom Navigation Bar */}
-        <nav className="md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-100 flex items-center justify-around px-2 py-3 safe-bottom z-40">
-           <NavItem id="dashboard" icon={Home} label="Home" />
-           <NavItem id="global_stock" icon={Package} label="Stock" />
-           <NavItem id="issues_list" icon={AlertTriangle} label="Guasti" />
-           <NavItem id="profile" icon={UserIcon} label="Profilo" />
-        </nav>
       </div>
 
-      {/* Mobile Drawer (Overlay) */}
+      {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
-           <div className="absolute right-0 top-0 bottom-0 w-64 bg-white p-6 shadow-2xl animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-10">
-                 <span className="font-black text-slate-900">Menu</span>
-                 <X onClick={() => setIsMobileMenuOpen(false)} />
-              </div>
-              <div className="space-y-4">
-                 <button onClick={onLogout} className="flex items-center gap-3 w-full text-red-500 font-bold p-3 rounded-xl bg-red-50">
-                    <LogOut size={20} />
-                    Disconnetti
-                 </button>
-              </div>
-           </div>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm md:hidden">
+          <div className="w-80 h-full bg-slate-900 flex flex-col animate-in slide-in-from-right-full duration-300">
+             <div className="p-8 flex items-center justify-between border-b border-slate-800/50">
+               <span className="text-white font-black tracking-tighter text-xl">Menu Navigazione</span>
+               <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400"><X size={24} /></button>
+             </div>
+             <nav className="flex-1 p-6 space-y-2">
+                <NavItem id="dashboard" icon={Home} label="Dashboard" />
+                {/* Altri item per mobile... */}
+             </nav>
+             <div className="p-8 border-t border-slate-800/50">
+                <button onClick={onLogout} className="flex items-center gap-3 text-red-400 font-black uppercase tracking-widest text-xs">
+                  <LogOut size={18} /> Disconnetti
+                </button>
+             </div>
+          </div>
         </div>
       )}
     </div>

@@ -17,6 +17,14 @@ export interface User {
   avatarUrl?: string;
 }
 
+export interface SystemMetrics {
+  totalTenants: number;
+  totalUsers: number;
+  activeOrders: number;
+  pendingIssues: number;
+  recentRegistrations: { date: string; count: number }[];
+}
+
 export interface Property {
   id: string;
   tenantId: string;
