@@ -1,0 +1,7 @@
+{
+  "name": "HoteLogix",
+  "description": "Professional SaaS for hospitality inventory, staff management and multi-tenant property coordination.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
